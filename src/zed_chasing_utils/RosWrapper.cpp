@@ -52,6 +52,12 @@ tf::StampedTransform RosWrapper::toTF(const Pose &pose, const string &worldFrame
 
 RosWrapper::RosWrapper():nh_("~"), it(nh_) {
     nh_.param<std::string>("global_frame_id",global_frame_id,"map");
+    nh_.param<int>("pcl_stride",pcl_stride,2);
+    nh_.param<int>("mask_padding_x",mask_padding_x,10);
+    nh_.param<int>("mask_padding_y",mask_padding_y,10);
+
+    cc.setParam(global_frame_id,pcl_stride,mask_padding_x,mask_padding_y);
+
 
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,"/zed2i/zed_node/depth/depth_registered/compressedDepth",1);
     subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_,"/zed2i/zed_node/rgb/camera_info",1);
@@ -65,8 +71,8 @@ RosWrapper::RosWrapper():nh_("~"), it(nh_) {
     pubPointsCorrection = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_corrected",1);
     pubPointsMasked = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_masked",1);
 
-    tf::TransformListener* tfListenerPtr;
-    tf::TransformBroadcaster* tfBroadcasterPtr;
+    tfListenerPtr = new tf::TransformListener;
+    tfBroadcasterPtr = new tf::TransformBroadcaster;
 
 }
 
@@ -77,5 +83,116 @@ void RosWrapper::run() {
 void
 RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr, const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr,
                                const zed_interfaces::ObjectsStampedConstPtr &objPtr) {
+        cc.setPose(this->tfCallBack(compDepthImgPtr));
+        cc.setObjPose(this->tfObjCallBack(objPtr));
+        cc.setDecompDepth(this->pngDecompressDepth(compDepthImgPtr));
         cc.depthCallback(compDepthImgPtr, cameraInfoPtr, objPtr);
 }
+
+Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr) {
+    ros::Time curSensorTime = compDepthImgPtr->header.stamp;
+    zedCallTime = curSensorTime;
+
+//    double fps = 1.0 / (curSensorTime - this->zedLastCallTime).toSec();
+    tf::StampedTransform transform_temp;
+    try {
+        // time 0 in lookup was intended
+        tfListenerPtr->lookupTransform(global_frame_id, compDepthImgPtr->header.frame_id,
+                                       curSensorTime, transform_temp);
+        return getPoseFromTfMsgs(transform_temp);
+    }catch (tf::TransformException& ex) {
+        ROS_ERROR_STREAM(ex.what());
+        ROS_ERROR("[ZedClient] no transform between map and object header. Cannot process further.");
+        Pose dummy;
+        dummy.setTranslation(0.0,0.0,0.0);
+        dummy.setRotation(Eigen::Quaternionf (1.0, 0.0, 0.0, 0.0));
+        return dummy;
+    }
+}
+
+Pose RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr & objPtr) {
+    ros::Time curObjTime = objPtr->header.stamp;
+    tf::StampedTransform transform_temp;
+    try {
+        // time 0 in lookup was intended
+        tfListenerPtr->lookupTransform(global_frame_id, objPtr->header.frame_id,
+                                       curObjTime, transform_temp);
+        return getPoseFromTfMsgs(transform_temp);
+    }catch (tf::TransformException& ex) {
+        ROS_ERROR_STREAM(ex.what());
+        ROS_ERROR("[ZedClient] no transform between map and object header. Cannot process further.");
+        Pose dummy;
+        dummy.setTranslation(0.0,0.0,0.0);
+        dummy.setRotation(Eigen::Quaternionf (1.0, 0.0, 0.0, 0.0));
+        return dummy;
+    }
+
+
+}
+
+cv::Mat RosWrapper::pngDecompressDepth(const sensor_msgs::CompressedImageConstPtr &depthPtr) {
+
+    cv::Mat decompressedTemp;
+    cv::Mat decompressed;
+    const size_t split_pos = depthPtr->format.find(';');
+    const std::string image_encoding =depthPtr->format.substr(0, split_pos);
+
+    if (depthPtr->data.size() > sizeof(compressed_depth_image_transport::ConfigHeader))
+    {
+//        Timer timer;
+        // Read compression type from stream
+        compressed_depth_image_transport::ConfigHeader compressionConfig{};
+        memcpy(&compressionConfig, &depthPtr->data[0], sizeof(compressionConfig));
+        const std::vector<uint8_t> imageData(depthPtr->data.begin() + sizeof(compressionConfig),depthPtr->data.end());
+
+        if (enc::bitDepth(image_encoding) == 32)
+            try{
+                decompressedTemp = cv::imdecode(imageData, cv::IMREAD_UNCHANGED);
+            }
+            catch (cv::Exception& e){
+                ROS_ERROR("%s", e.what());
+                return (cv::Mat(1,1, CV_32FC1));
+//                return false ;
+            }
+        size_t rows = decompressedTemp.rows;
+        size_t cols = decompressedTemp.cols;
+
+
+        if ((rows > 0) && (cols > 0)) {
+            decompressed = cv::Mat(rows, cols, CV_32FC1);
+
+            // Depth conversion
+            auto itDepthImg = decompressed.begin<float>(),
+                    itDepthImg_end = decompressed.end<float>();
+            auto itInvDepthImg = decompressedTemp.begin<unsigned short>(),
+                    itInvDepthImg_end = decompressedTemp.end<unsigned short>();
+
+            float depthQuantA = compressionConfig.depthParam[0];
+            float depthQuantB = compressionConfig.depthParam[1];
+
+            for (; (itDepthImg != itDepthImg_end) &&
+                   (itInvDepthImg != itInvDepthImg_end); ++itDepthImg, ++itInvDepthImg) {
+                // check for NaN & max depth
+                if (*itInvDepthImg) {
+                    *itDepthImg = depthQuantA / ((float) *itInvDepthImg - depthQuantB);
+                } else {
+                    *itDepthImg = std::numeric_limits<float>::quiet_NaN();
+                }
+            }
+
+//            double elapseDecomp = timer.stop();
+//            ROS_DEBUG("depth decomp took %f ms", elapseDecomp);
+            return decompressed;
+        }
+        else
+        {
+            return (cv::Mat(1,1, CV_32FC1));
+        }
+
+    }
+    else
+    {
+        return (cv::Mat(1,1, CV_32FC1));
+    }
+}
+

@@ -17,9 +17,23 @@
 #include <pcl_ros/point_cloud.h>
 #include <zed_interfaces/ObjectsStamped.h>
 
+#include <compressed_depth_image_transport/codec.h>
+#include <compressed_depth_image_transport/compression_common.h>
+#include <compressed_image_transport/compression_common.h>
+
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <algorithm>
 
 class ChasingClient{
-private:
+    struct Param{
+        std::string global_frame_id;
+        int pcl_stride;
+        int mask_padding_x;
+        int mask_padding_y;
+    };
 
     struct State{
         bool isTargetTracked = false;
@@ -27,15 +41,26 @@ private:
         Pose T_cd; // zed cam to rear view frame
         Pose T_wc;
         Pose T_wo; // world to object (x-forwarding)
+        pcl::PointCloud<pcl::PointXYZ> pclObjectsRemoved;
+
         ros::Time zedLastCallTime;
         ros::Time clientLastCallTime;
 
-};
+    };
+private:
+    State drone_state;
+    Param param;
+    cv::Mat decompDepthImg;
 
 public:
     ChasingClient();
+    void setParam(const std::string &global_frame_id_, const int &pcl_stride_,
+                  const int &mask_padding_x,const int &mask_padding_y);
     void depthCallback(const sensor_msgs::CompressedImageConstPtr &depthCompPtr,
                       const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr, const zed_interfaces::ObjectsStampedConstPtr &zedOdPtr);
+    void setPose(const Pose & pose);
+    void setObjPose(const Pose & pose);
+    void setDecompDepth(const cv::Mat & decompDepth_);
 };
 
 #endif //ZED_CHASING_UTILS_CHASINGCLIENT_H

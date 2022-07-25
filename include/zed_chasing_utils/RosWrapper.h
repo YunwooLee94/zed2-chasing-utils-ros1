@@ -21,32 +21,46 @@ typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedI
         CompressedImageMaskBbSync;
 
 using namespace std;
-
+namespace enc = sensor_msgs::image_encodings;
 
 
 class RosWrapper{
 private:
     ros::NodeHandle nh_;
     image_transport::ImageTransport it;
+
     string global_frame_id;
+    int pcl_stride;
+    int mask_padding_x;
+    int mask_padding_y;
+    ChasingClient cc;
+    ros::Time zedCallTime;
+
+
 
     message_filters::Subscriber<sensor_msgs::CompressedImage> * subDepthComp;
     message_filters::Subscriber<sensor_msgs::CameraInfo> *subCamInfo;
     message_filters::Subscriber<zed_interfaces::ObjectsStamped> *subZedOd;
-
     message_filters::Synchronizer<CompressedImageMaskBbSync>* subSync;
 
-    ChasingClient cc;
+    tf::TransformListener* tfListenerPtr;
+    tf::TransformBroadcaster* tfBroadcasterPtr;
 
-    image_transport::Publisher pubDepthMaskImg;
     ros::Publisher pubPointsCorrection; // publish after masking
     ros::Publisher pubPointsMasked; // publish masked point-cloud
+    image_transport::Publisher pubDepthMaskImg;
+
 
 
     void zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &,
                             const sensor_msgs::CameraInfoConstPtr &,
                             const zed_interfaces::ObjectsStampedConstPtr &
                             );
+
+    Pose tfCallBack(const sensor_msgs::CompressedImageConstPtr&);
+    Pose tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr&);
+
+    cv::Mat pngDecompressDepth(const sensor_msgs::CompressedImageConstPtr& depthPtr);
 
     static Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped);
     static Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped);
