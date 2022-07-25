@@ -3,7 +3,7 @@
 //
 #include<zed_chasing_utils/RosWrapper.h>
 
-Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped){
+Pose RosWrapper::getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped){
     Pose tempPose;
     tempPose.poseMat.setIdentity();
     Eigen::Vector3f loc((float) poseStamped.pose.position.x,
@@ -19,21 +19,21 @@ Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped){
     tempPose.poseMat.rotate(quaternionf);
     return tempPose;
 }
-Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped){
+Pose RosWrapper::getPoseFromTfMsgs(const tf::StampedTransform& tfStamped){
     Pose tempPose;
     tempPose.poseMat.setIdentity();
-    Eigen::Vector3f loc(tfStamped.getOrigin().x(),tfStamped.getOrigin().y(),tfStamped.getOrigin().z());
+    Eigen::Vector3f loc((float)tfStamped.getOrigin().x(),(float)tfStamped.getOrigin().y(),(float)tfStamped.getOrigin().z());
     tempPose.poseMat.translate(loc);
     Eigen::Quaternionf quaternionf;
     quaternionf.setIdentity();
-    quaternionf.w() = tfStamped.getRotation().w();
-    quaternionf.x() = tfStamped.getRotation().x();
-    quaternionf.y() = tfStamped.getRotation().y();
-    quaternionf.z() = tfStamped.getRotation().z();
+    quaternionf.w() = (float) tfStamped.getRotation().w();
+    quaternionf.x() = (float) tfStamped.getRotation().x();
+    quaternionf.y() = (float) tfStamped.getRotation().y();
+    quaternionf.z() = (float) tfStamped.getRotation().z();
     tempPose.poseMat.rotate(quaternionf);
 }
 
-tf::StampedTransform toTF(const Pose &pose, const string &worldFrameName, const string &frameName, const ros::Time &time){
+tf::StampedTransform RosWrapper::toTF(const Pose &pose, const string &worldFrameName, const string &frameName, const ros::Time &time){
     tf::StampedTransform stampedTransform;
     stampedTransform.frame_id_ = worldFrameName;
     stampedTransform.child_frame_id_ = frameName;

@@ -22,9 +22,6 @@ typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedI
 
 using namespace std;
 
-Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped);
-Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped);
-tf::StampedTransform toTF(const Pose &pose, const string &worldFrameName, const string &frameName, const ros::Time &time);
 
 
 class RosWrapper{
@@ -50,6 +47,12 @@ private:
                             const sensor_msgs::CameraInfoConstPtr &,
                             const zed_interfaces::ObjectsStampedConstPtr &
                             );
+
+    static Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped);
+    static Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped);
+    static tf::StampedTransform toTF(const Pose &pose, const string &worldFrameName, const string &frameName, const ros::Time &time);
+
+
 public:
     RosWrapper();
     void run();

@@ -23,6 +23,12 @@ private:
 
     struct State{
         bool isTargetTracked = false;
+        Pose T_cw; // world to cam (optical)
+        Pose T_cd; // zed cam to rear view frame
+        Pose T_wc;
+        Pose T_wo; // world to object (x-forwarding)
+        ros::Time zedLastCallTime;
+        ros::Time clientLastCallTime;
 
 };
 
