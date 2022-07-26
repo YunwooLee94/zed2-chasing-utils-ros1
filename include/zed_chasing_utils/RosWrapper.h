@@ -36,7 +36,10 @@ private:
     ChasingClient cc;
     ros::Time zedCallTime;
 
-
+    bool isCameraPoseReceived;
+    bool isObjectPoseReceived;
+    bool isDepthImageReceived;
+    bool isPclCreated;
 
     message_filters::Subscriber<sensor_msgs::CompressedImage> * subDepthComp;
     message_filters::Subscriber<sensor_msgs::CameraInfo> *subCamInfo;

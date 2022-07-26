@@ -55,9 +55,7 @@ RosWrapper::RosWrapper():nh_("~"), it(nh_) {
     nh_.param<int>("pcl_stride",pcl_stride,2);
     nh_.param<int>("mask_padding_x",mask_padding_x,10);
     nh_.param<int>("mask_padding_y",mask_padding_y,10);
-
     cc.setParam(global_frame_id,pcl_stride,mask_padding_x,mask_padding_y);
-
 
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,"/zed2i/zed_node/depth/depth_registered/compressedDepth",1);
     subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_,"/zed2i/zed_node/rgb/camera_info",1);
@@ -70,6 +68,12 @@ RosWrapper::RosWrapper():nh_("~"), it(nh_) {
     pubDepthMaskImg = it.advertise("image_depth_masekd",1);
     pubPointsCorrection = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_corrected",1);
     pubPointsMasked = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_masked",1);
+
+    isCameraPoseReceived = false;
+    isObjectPoseReceived = false;
+    isDepthImageReceived = false;
+    isPclCreated = false;
+
 
     tfListenerPtr = new tf::TransformListener;
     tfBroadcasterPtr = new tf::TransformBroadcaster;
@@ -84,9 +88,18 @@ void
 RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr, const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr,
                                const zed_interfaces::ObjectsStampedConstPtr &objPtr) {
         cc.setPose(this->tfCallBack(compDepthImgPtr));
-        cc.setObjPose(this->tfObjCallBack(objPtr));
-        cc.setDecompDepth(this->pngDecompressDepth(compDepthImgPtr));
-        cc.depthCallback(compDepthImgPtr, cameraInfoPtr, objPtr);
+        if(isCameraPoseReceived){
+            cc.setObjPose(this->tfObjCallBack(objPtr));
+            if(isObjectPoseReceived){
+                cc.setDecompDepth(this->pngDecompressDepth(compDepthImgPtr));
+                if(isDepthImageReceived){
+                    cc.depthCallback(compDepthImgPtr, cameraInfoPtr, objPtr);
+                    if(isPclCreated){
+                        
+                    }
+                }
+            }
+        }
 }
 
 Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr) {
@@ -99,6 +112,7 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
         // time 0 in lookup was intended
         tfListenerPtr->lookupTransform(global_frame_id, compDepthImgPtr->header.frame_id,
                                        curSensorTime, transform_temp);
+        isCameraPoseReceived = true;
         return getPoseFromTfMsgs(transform_temp);
     }catch (tf::TransformException& ex) {
         ROS_ERROR_STREAM(ex.what());
@@ -106,6 +120,7 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
         Pose dummy;
         dummy.setTranslation(0.0,0.0,0.0);
         dummy.setRotation(Eigen::Quaternionf (1.0, 0.0, 0.0, 0.0));
+        isCameraPoseReceived = false;
         return dummy;
     }
 }
@@ -117,6 +132,7 @@ Pose RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr & ob
         // time 0 in lookup was intended
         tfListenerPtr->lookupTransform(global_frame_id, objPtr->header.frame_id,
                                        curObjTime, transform_temp);
+        isObjectPoseReceived = true;
         return getPoseFromTfMsgs(transform_temp);
     }catch (tf::TransformException& ex) {
         ROS_ERROR_STREAM(ex.what());
@@ -124,6 +140,7 @@ Pose RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr & ob
         Pose dummy;
         dummy.setTranslation(0.0,0.0,0.0);
         dummy.setRotation(Eigen::Quaternionf (1.0, 0.0, 0.0, 0.0));
+        isObjectPoseReceived = false;
         return dummy;
     }
 
@@ -148,9 +165,11 @@ cv::Mat RosWrapper::pngDecompressDepth(const sensor_msgs::CompressedImageConstPt
         if (enc::bitDepth(image_encoding) == 32)
             try{
                 decompressedTemp = cv::imdecode(imageData, cv::IMREAD_UNCHANGED);
+
             }
             catch (cv::Exception& e){
                 ROS_ERROR("%s", e.what());
+                isDepthImageReceived = false;
                 return (cv::Mat(1,1, CV_32FC1));
 //                return false ;
             }
@@ -179,19 +198,21 @@ cv::Mat RosWrapper::pngDecompressDepth(const sensor_msgs::CompressedImageConstPt
                     *itDepthImg = std::numeric_limits<float>::quiet_NaN();
                 }
             }
-
 //            double elapseDecomp = timer.stop();
 //            ROS_DEBUG("depth decomp took %f ms", elapseDecomp);
+            isDepthImageReceived = true;
             return decompressed;
         }
         else
         {
+            isDepthImageReceived = false;
             return (cv::Mat(1,1, CV_32FC1));
         }
 
     }
     else
     {
+        isDepthImageReceived = false;
         return (cv::Mat(1,1, CV_32FC1));
     }
 }
