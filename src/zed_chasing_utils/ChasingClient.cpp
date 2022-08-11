@@ -3,8 +3,7 @@
 //
 #include <zed_chasing_utils/ChasingClient.h>
 
-void ChasingClient::depthCallback(const sensor_msgs::CompressedImageConstPtr &depthCompPtr,
-                                 const sensor_msgs::CameraInfoConstPtr &camInfoPtr,
+void ChasingClient::depthCallback(const sensor_msgs::CameraInfoConstPtr &camInfoPtr,
                                  const zed_interfaces::ObjectsStampedConstPtr &zedOdPtr) {
     image_geometry::PinholeCameraModel model_;
     model_.fromCameraInfo(*camInfoPtr);
@@ -15,8 +14,8 @@ void ChasingClient::depthCallback(const sensor_msgs::CompressedImageConstPtr &de
     double camera_factor = 1;
 
     drone_state.pclObjectsRemoved.clear();
-    drone_state.pclObjectsRemoved.header.frame_id = depthCompPtr->header.frame_id;
-    drone_state.pclObjectsRemoved.header.stamp = (uint64_t)(depthCompPtr->header.stamp.toNSec()/1000ull);
+    drone_state.pclObjectsRemoved.header.frame_id = depthImgFrameId;
+    drone_state.pclObjectsRemoved.header.stamp = depthImgTimeStamp;
 
     int rGlobalMin = 0;
     int cGlobalMin = 0;

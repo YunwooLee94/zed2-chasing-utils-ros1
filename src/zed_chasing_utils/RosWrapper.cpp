@@ -92,8 +92,10 @@ RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDept
             cc.setObjPose(this->tfObjCallBack(objPtr));
             if(isObjectPoseReceived){
                 cc.setDecompDepth(this->pngDecompressDepth(compDepthImgPtr));
+                cc.setDepthFrameId(this->getDepthImageFrameId(compDepthImgPtr));
+                cc.setDepthTimeStamp(this->getDepthImageTimeStamp(compDepthImgPtr));
                 if(isDepthImageReceived){
-                    cc.depthCallback(compDepthImgPtr, cameraInfoPtr, objPtr);
+                    cc.depthCallback(cameraInfoPtr, objPtr);
                     if(isPclCreated){
                         
                     }
@@ -208,12 +210,19 @@ cv::Mat RosWrapper::pngDecompressDepth(const sensor_msgs::CompressedImageConstPt
             isDepthImageReceived = false;
             return (cv::Mat(1,1, CV_32FC1));
         }
-
     }
     else
     {
         isDepthImageReceived = false;
         return (cv::Mat(1,1, CV_32FC1));
     }
+}
+
+string RosWrapper::getDepthImageFrameId(const sensor_msgs::CompressedImageConstPtr &depthCompPtr) {
+    return depthCompPtr->header.frame_id;
+}
+
+uint64_t RosWrapper::getDepthImageTimeStamp(const sensor_msgs::CompressedImageConstPtr &depthCompPtr) {
+    return (uint64_t)(depthCompPtr->header.stamp.toNSec()/1000ull);
 }
 

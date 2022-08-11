@@ -64,6 +64,8 @@ private:
     Pose tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr&);
 
     cv::Mat pngDecompressDepth(const sensor_msgs::CompressedImageConstPtr& depthPtr);
+    string getDepthImageFrameId(const sensor_msgs::CompressedImageConstPtr& depthCompPtr);
+    uint64_t getDepthImageTimeStamp(const sensor_msgs::CompressedImageConstPtr& depthCompPtr);
 
     static Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped);
     static Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped);

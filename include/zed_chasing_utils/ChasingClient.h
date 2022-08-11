@@ -51,16 +51,23 @@ private:
     State drone_state;
     Param param;
     cv::Mat decompDepthImg;
-
+    cv::Mat depthImgMasked;
+    std::string depthImgFrameId;
+    u_int64_t depthImgTimeStamp;
 public:
     ChasingClient();
     void setParam(const std::string &global_frame_id_, const int &pcl_stride_,
                   const int &mask_padding_x,const int &mask_padding_y);
-    void depthCallback(const sensor_msgs::CompressedImageConstPtr &depthCompPtr,
-                      const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr, const zed_interfaces::ObjectsStampedConstPtr &zedOdPtr);
+    void depthCallback(const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr, const zed_interfaces::ObjectsStampedConstPtr &zedOdPtr);
     void setPose(const Pose & pose);
     void setObjPose(const Pose & pose);
     void setDecompDepth(const cv::Mat & decompDepth_);
+    void setDepthFrameId(const std::string &frame_id) {
+        depthImgFrameId = frame_id;
+    }
+    void setDepthTimeStamp(const u_int64_t &time_stamp) {
+        depthImgTimeStamp = time_stamp;
+    }
 };
 
 #endif //ZED_CHASING_UTILS_CHASINGCLIENT_H
