@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(zed_chasing_utils)
 
-#set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14")
-set(CMAKE_BUILD_TYPE Release)
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14")
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 find_package(Eigen3  REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIRS})

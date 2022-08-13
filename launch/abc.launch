@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="rviz_display" default="true"/>
+
+    <group if = "$(arg rviz_display)">
+	    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_chasing_utils)/launch/rviz_config/zed_client.rviz" output="log"/>
+    </group>
+  <node pkg="zed_chasing_utils" type="zed_client" name="zed_client" output="screen">
+  </node>
+
+
+</launch>

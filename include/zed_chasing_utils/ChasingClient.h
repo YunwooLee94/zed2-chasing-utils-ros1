@@ -26,6 +26,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <algorithm>
+#include <numeric>
 
 class ChasingClient{
     struct Param{
@@ -42,7 +43,7 @@ class ChasingClient{
         Pose T_wc;
         Pose T_wo; // world to object (x-forwarding)
         pcl::PointCloud<pcl::PointXYZ> pclObjectsRemoved;
-
+        int bbox_2d[4]; //rMin, cMin, rMax, cMax
         ros::Time zedLastCallTime;
         ros::Time clientLastCallTime;
 
@@ -68,6 +69,20 @@ public:
     void setDepthTimeStamp(const u_int64_t &time_stamp) {
         depthImgTimeStamp = time_stamp;
     }
+    cv::Mat getMaskedImage() {
+        return decompDepthImg;
+    }
+    pcl::PointCloud<pcl::PointXYZ> getMaskedPointCloud(){
+        return drone_state.pclObjectsRemoved;
+    }
+    Pose getCameraPose() {
+        return drone_state.T_wc;
+    }
+    Pose getObjectPose(){
+        return drone_state.T_wo;
+    }
+
+
 };
 
 #endif //ZED_CHASING_UTILS_CHASINGCLIENT_H

@@ -13,14 +13,15 @@
 #include <string>
 #include <iostream>
 
+
 struct Point{
     float x;
     float y;
     float z;
 
     Point(){x=0.0; y=0.0, z=0.0;};
-    explicit Point(float x_, float y_, float z_):x(x_),y(y_),z(z_){};
-    explicit Point(const Eigen::Vector3f &pnt):x(pnt(0)),y(pnt(1)),z(pnt(2)){};
+    Point(float x_, float y_, float z_):x(x_),y(y_),z(z_){};
+    Point(const Eigen::Vector3f &pnt):x(pnt(0)),y(pnt(1)),z(pnt(2)){};
 
     Eigen::Vector3f toEigen() const{
         return Eigen::Vector3f(x,y,z);

@@ -49,8 +49,9 @@ private:
     tf::TransformListener* tfListenerPtr;
     tf::TransformBroadcaster* tfBroadcasterPtr;
 
-    ros::Publisher pubPointsCorrection; // publish after masking
+    //    ros::Publisher pubCameraPose;
     ros::Publisher pubPointsMasked; // publish masked point-cloud
+    ros::Publisher pubObjectPos; // publish masked
     image_transport::Publisher pubDepthMaskImg;
 
 
@@ -70,7 +71,9 @@ private:
     static Pose getPoseFromGeoMsgs(const geometry_msgs::PoseStamped & poseStamped);
     static Pose getPoseFromTfMsgs(const tf::StampedTransform& tfStamped);
     static tf::StampedTransform toTF(const Pose &pose, const string &worldFrameName, const string &frameName, const ros::Time &time);
-
+    geometry_msgs::PoseStamped poseToGeoMsgs(const Pose &pose);
+    geometry_msgs::PointStamped poseToGeoMsgsPoint(const Pose &pose);
+    sensor_msgs::ImagePtr imageToROSmsg(const cv::Mat& img, const std::string encodingType, std::string frameId, ros::Time t);
 
 public:
     RosWrapper();
