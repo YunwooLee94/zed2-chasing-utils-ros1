@@ -57,7 +57,7 @@ RosWrapper::RosWrapper():nh_("~"), it(nh_) {
     nh_.param<int>("mask_padding_x",mask_padding_x,10);
     nh_.param<int>("mask_padding_y",mask_padding_y,10);
     cc.setParam(global_frame_id,pcl_stride,mask_padding_x,mask_padding_y);
-
+//    std::cout<<"mask_padding_x: "<<mask_padding_x<<" mask_padding_y: "<<mask_padding_y<<std::endl;
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,"/zed2i/zed_node/depth/depth_registered/compressedDepth",1);
     subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_,"/zed2i/zed_node/rgb/camera_info",1);
     subZedOd = new message_filters::Subscriber<zed_interfaces::ObjectsStamped>(nh_,"/zed2i/zed_node/obj_det/objects",1);
