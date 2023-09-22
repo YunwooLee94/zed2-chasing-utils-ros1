@@ -28,12 +28,9 @@ class RosWrapper{
 private:
     ros::NodeHandle nh_;
     image_transport::ImageTransport it;
+    chasing_client::Param param_;
 
-    string global_frame_id;
-    int pcl_stride;
-    int mask_padding_x;
-    int mask_padding_y;
-    ChasingClient cc;
+    chasing_client::ChasingClient cc;
     ros::Time zedCallTime;
 
     bool isCameraPoseReceived;
@@ -51,10 +48,9 @@ private:
 
     //    ros::Publisher pubCameraPose;
     ros::Publisher pubPointsMasked; // publish masked point-cloud
-    ros::Publisher pubObjectPos; // publish masked
+    std::vector<ros::Publisher> pubObjectPos; // publish objects
+
     image_transport::Publisher pubDepthMaskImg;
-
-
 
     void zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &,
                             const sensor_msgs::CameraInfoConstPtr &,
@@ -62,7 +58,7 @@ private:
                             );
 
     Pose tfCallBack(const sensor_msgs::CompressedImageConstPtr&);
-    Pose tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr&);
+    vector<Pose> tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr&);
 
     cv::Mat pngDecompressDepth(const sensor_msgs::CompressedImageConstPtr& depthPtr);
     string getDepthImageFrameId(const sensor_msgs::CompressedImageConstPtr& depthCompPtr);

@@ -1,0 +1,5 @@
+global_frame_id: map
+pcl_stride: 3
+mask_padding_x: 20
+mask_padding_y: 20
+target_number: 1
