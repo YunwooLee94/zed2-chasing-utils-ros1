@@ -14,6 +14,42 @@
 #include <iostream>
 
 
+struct Velocity{
+    float vx;
+    float vy;
+    float vz;
+    Velocity(){vx=0.0,vy=0.0,vz=0.0;};
+    Velocity(float vx_, float vy_, float vz_):vx(vx_),vy(vy_),vz(vz_){};
+    Eigen::Vector3f toEigen() const{
+        return Eigen::Vector3f (vx,vy,vz);
+    }
+    Eigen::Vector3d toEigend() const{
+        return Eigen::Vector3d(vx,vy,vz);
+    }
+    Velocity operator+(const Velocity &vel) const{
+        return Velocity(vel.vx+vx, vel.vy+vy,vel.vz+vz);
+    }
+    Velocity operator-(const Velocity &vel) const{
+        return Velocity(vel.vx-vx, vel.vy-vy,vel.vz-vz);
+    }
+    Velocity operator*(const float &s) const{
+        return Velocity(s*vx, s*vy,s*vz);
+    }
+    Velocity operator/(const float &s) const{
+        return *this* (float)(1.0/s);
+    }
+
+    float dot(Velocity v) const{
+        return vx*v.vx + vy*v.vy +vz*v.vz;
+    }
+    float norm() const {
+        return (float)sqrt(pow(vx,2)+pow(vy,2)+pow(vz,2));
+    }
+    Velocity normalized() const{
+        return *this *(float)(1.0/this->norm());
+    }
+};
+
 struct Point{
     float x;
     float y;
