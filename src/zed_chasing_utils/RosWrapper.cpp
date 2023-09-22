@@ -59,13 +59,15 @@ RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
     nh_.param<int>("pcl_stride", param_.pcl_stride, 2);
     nh_.param<int>("mask_padding_x", param_.mask_padding_x, 10);
     nh_.param<int>("mask_padding_y", param_.mask_padding_y, 10);
+    nh_.param<float>("separate_threshold",param_.separate_threshold,0.1);
     nh_.param<int>("target_number", param_.target_number, 0);
+
     cc.setParam(param_);
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,
-                                                                                 "/zed2i/zed_node/depth/depth_registered/compressedDepth",
+                                                                                 "/zed2/zed_node/depth/depth_registered/compressedDepth",
                                                                                  1);
-    subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_, "/zed2i/zed_node/rgb/camera_info", 1);
-    subZedOd = new message_filters::Subscriber<zed_interfaces::ObjectsStamped>(nh_, "/zed2i/zed_node/obj_det/objects",
+    subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_, "/zed2/zed_node/rgb/camera_info", 1);
+    subZedOd = new message_filters::Subscriber<zed_interfaces::ObjectsStamped>(nh_, "/zed2/zed_node/obj_det/objects",
                                                                                1);
     {
         subSync = new message_filters::Synchronizer<CompressedImageMaskBbSync>(CompressedImageMaskBbSync(10),
@@ -79,8 +81,6 @@ RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
         pubObjectPos.push_back(
                 nh_.advertise<geometry_msgs::PointStamped>("object" + to_string(i + 1) + "_position", 1));
     }
-//    pubPointsCorrection = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_corrected",1);
-//    pubCameraPose = nh_.advertise<geometry_msgs::PoseStamped>("camera_pose",1);
 
     isCameraPoseReceived = false;
     isObjectPoseReceived = false;

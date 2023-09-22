@@ -115,7 +115,7 @@ void chasing_client::ChasingClient::setObjPose(const std::vector<Pose>& pose) {
                     temp_distance_squared = powf(target_pose_temp[i].getTranslation().x-pose[j].getTranslation().x,2)+
                             powf(target_pose_temp[i].getTranslation().y-pose[j].getTranslation().y,2)+
                             powf(target_pose_temp[i].getTranslation().z-pose[j].getTranslation().z,2);
-                    if(temp_distance_squared<distance_squared_array[i]){
+                    if(temp_distance_squared<distance_squared_array[i] and temp_distance_squared<powf(param_.separate_threshold,2)){
                         distance_squared_array[i] = temp_distance_squared;
                         index_array[i]=j;
                     }
