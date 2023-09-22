@@ -2,4 +2,5 @@ global_frame_id: map
 pcl_stride: 3
 mask_padding_x: 20
 mask_padding_y: 20
+separate_threshold: 0.5
 target_number: 1

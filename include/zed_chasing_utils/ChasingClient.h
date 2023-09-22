@@ -36,6 +36,7 @@ namespace chasing_client{
         int mask_padding_x;
         int mask_padding_y;
         int target_number;
+        float separate_threshold;
     };
     class ChasingClient{
     private:
