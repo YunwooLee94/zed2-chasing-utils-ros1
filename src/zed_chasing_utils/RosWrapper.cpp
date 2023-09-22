@@ -55,12 +55,12 @@ RosWrapper::toTF(const Pose &pose, const string &worldFrameName, const string &f
 
 
 RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
-    nh_.param<std::string>("global_frame_id", global_frame_id, "map");
-    nh_.param<int>("pcl_stride", pcl_stride, 2);
-    nh_.param<int>("mask_padding_x", mask_padding_x, 10);
-    nh_.param<int>("mask_padding_y", mask_padding_y, 10);
-    cc.setParam(global_frame_id, pcl_stride, mask_padding_x, mask_padding_y);
-//    std::cout<<"mask_padding_x: "<<mask_padding_x<<" mask_padding_y: "<<mask_padding_y<<std::endl;
+    nh_.param<std::string>("global_frame_id", param_.global_frame_id, "map");
+    nh_.param<int>("pcl_stride", param_.pcl_stride, 2);
+    nh_.param<int>("mask_padding_x", param_.mask_padding_x, 10);
+    nh_.param<int>("mask_padding_y", param_.mask_padding_y, 10);
+    nh_.param<int>("target_number", param_.target_number, 0);
+    cc.setParam(param_);
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,
                                                                                  "/zed2i/zed_node/depth/depth_registered/compressedDepth",
                                                                                  1);
@@ -75,7 +75,10 @@ RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
     }
     pubPointsMasked = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_masked", 1);
     pubDepthMaskImg = it.advertise("image_depth_masked", 1);
-    pubObjectPos = nh_.advertise<geometry_msgs::PointStamped>("object_pos", 1);
+    for (int i = 0; i < param_.target_number; i++) {
+        pubObjectPos.push_back(
+                nh_.advertise<geometry_msgs::PointStamped>("object" + to_string(i + 1) + "_position", 1));
+    }
 //    pubPointsCorrection = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_corrected",1);
 //    pubCameraPose = nh_.advertise<geometry_msgs::PoseStamped>("camera_pose",1);
 
@@ -108,19 +111,19 @@ RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDept
     cc.setDepthFrameId(this->getDepthImageFrameId(compDepthImgPtr));
     cc.setDepthTimeStamp(this->getDepthImageTimeStamp(compDepthImgPtr));
     cc.depthCallback(cameraInfoPtr, objPtr);
-
-    if ((not isnan(cc.getObjectPose().getTranslation().x)) and (not isnan(cc.getObjectPose().getTranslation().y))
-        and (not isnan(cc.getObjectPose().getTranslation().z))) {
-        pubObjectPos.publish(poseToGeoMsgsPoint(cc.getObjectPose()));
+    if (cc.getObjectPose().size() == param_.target_number) {
+        for (int i = 0; i < param_.target_number; i++) {
+            if ((not isnan(cc.getObjectPose()[i].getTranslation().x)) and
+                (not isnan(cc.getObjectPose()[i].getTranslation().y))
+                and (not isnan(cc.getObjectPose()[i].getTranslation().z)))
+                pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i]));
+        }
     }
-    if (not cc.getMaskedPointCloud().points.empty()) {
+    if (not cc.getMaskedPointCloud().points.empty())
         pubPointsMasked.publish(cc.getMaskedPointCloud());
-    }
-//    std::cout<<"HHHH"<<std::endl;
 
     pubDepthMaskImg.publish(imageToROSmsg(cc.getMaskedImage(), enc::TYPE_32FC1, compDepthImgPtr->header.frame_id,
                                           compDepthImgPtr->header.stamp));
-
 }
 
 Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr) {
@@ -131,7 +134,7 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
     tf::StampedTransform transform_temp;
     try {
         // time 0 in lookup was intended
-        tfListenerPtr->lookupTransform(global_frame_id, compDepthImgPtr->header.frame_id,
+        tfListenerPtr->lookupTransform(param_.global_frame_id, compDepthImgPtr->header.frame_id,
                                        curSensorTime, transform_temp);
         isCameraPoseReceived = true;
 //        std::cout<<"x: "<<transform_temp.getOrigin().x()<<" y: "<<transform_temp.getOrigin().y()<<" z: "<<
@@ -148,9 +151,11 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
     }
 }
 
-Pose RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr &objPtr) {
+vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr &objPtr) {
     float temp_x{0.0}, temp_y{0.0}, temp_z{0.0};
+    vector<Pose> object_position_array;
     for (int idx = 0; idx < objPtr->objects.size(); idx++) {
+        temp_x = 0.0f, temp_y = 0.0f, temp_z = 0.0f;
         bool isNanBodyBbox = false;
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 3; j++) {
@@ -208,18 +213,13 @@ Pose RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr &obj
                 temp_z = NaN;
             }
         }
+        Pose tempPose;
+        tempPose.setTranslation(temp_x,
+                                temp_y, temp_z);
+        tempPose.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
+        object_position_array.push_back(tempPose);
     }
-    if (objPtr->objects.empty()) {
-        const float NaN = std::numeric_limits<float>::quiet_NaN();
-        temp_x = NaN;
-        temp_y = NaN;
-        temp_z = NaN;
-    }
-    Pose tempPose;
-    tempPose.setTranslation(temp_x,
-                            temp_y, temp_z);
-    tempPose.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
-    return tempPose;
+    return object_position_array;
 }
 
 cv::Mat RosWrapper::pngDecompressDepth(const sensor_msgs::CompressedImageConstPtr &depthPtr) {
@@ -327,7 +327,7 @@ geometry_msgs::PoseStamped RosWrapper::poseToGeoMsgs(const Pose &pose) {
     tempPose.pose.orientation.x = pose.getQuaternion().x();
     tempPose.pose.orientation.y = pose.getQuaternion().y();
     tempPose.pose.orientation.z = pose.getQuaternion().z();
-    tempPose.header.frame_id = global_frame_id;
+    tempPose.header.frame_id = param_.global_frame_id;
     return tempPose;
 }
 
@@ -336,7 +336,7 @@ geometry_msgs::PointStamped RosWrapper::poseToGeoMsgsPoint(const Pose &pose) {
     tempPoint.point.x = pose.getTranslation().x;
     tempPoint.point.y = pose.getTranslation().y;
     tempPoint.point.z = pose.getTranslation().z;
-    tempPoint.header.frame_id = global_frame_id;
+    tempPoint.header.frame_id = param_.global_frame_id;
     return tempPoint;
 }
 
