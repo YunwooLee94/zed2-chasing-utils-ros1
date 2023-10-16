@@ -123,7 +123,7 @@ RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDept
             if ((not isnan(cc.getObjectPose()[i].getTranslation().x)) and
                 (not isnan(cc.getObjectPose()[i].getTranslation().y))
                 and (not isnan(cc.getObjectPose()[i].getTranslation().z)))
-                pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i]));
+                pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i],compDepthImgPtr->header.stamp));
         }
     }
     if (not cc.getMaskedPointCloud().points.empty())
@@ -144,7 +144,7 @@ void RosWrapper::zedSyncCallbackMock(const sensor_msgs::CompressedImageConstPtr 
       if ((not isnan(cc.getObjectPose()[i].getTranslation().x)) and
           (not isnan(cc.getObjectPose()[i].getTranslation().y))
           and (not isnan(cc.getObjectPose()[i].getTranslation().z)))
-        pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i]));
+        pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i],compDepthImgPtr->header.stamp));
     }
   }
   if (not cc.getMaskedPointCloud().points.empty())
@@ -360,11 +360,12 @@ geometry_msgs::PoseStamped RosWrapper::poseToGeoMsgs(const Pose &pose) {
     return tempPose;
 }
 
-geometry_msgs::PointStamped RosWrapper::poseToGeoMsgsPoint(const Pose &pose) {
+geometry_msgs::PointStamped RosWrapper::poseToGeoMsgsPoint(const Pose &pose, const ros::Time &stamp) {
     geometry_msgs::PointStamped tempPoint;
     tempPoint.point.x = pose.getTranslation().x;
     tempPoint.point.y = pose.getTranslation().y;
     tempPoint.point.z = pose.getTranslation().z;
     tempPoint.header.frame_id = param_.global_frame_id;
+    tempPoint.header.stamp = stamp;
     return tempPoint;
 }

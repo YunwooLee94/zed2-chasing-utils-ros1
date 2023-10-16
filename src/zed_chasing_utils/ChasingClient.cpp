@@ -12,7 +12,6 @@ void chasing_client::ChasingClient::depthCallback(const sensor_msgs::CameraInfoC
     double camera_fx = model_.fx();
     double camera_fy = model_.fy();
     double camera_factor = 1;
-
     state_.pclObjectsRemoved.clear();
     state_.pclObjectsRemoved.header.frame_id = param_.global_frame_id;
     state_.pclObjectsRemoved.header.stamp = depthImgTimeStamp;

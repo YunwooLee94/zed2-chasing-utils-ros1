@@ -74,7 +74,7 @@ private:
   static tf::StampedTransform toTF(const Pose &pose, const string &worldFrameName,
                                    const string &frameName, const ros::Time &time);
   geometry_msgs::PoseStamped poseToGeoMsgs(const Pose &pose);
-  geometry_msgs::PointStamped poseToGeoMsgsPoint(const Pose &pose);
+  geometry_msgs::PointStamped poseToGeoMsgsPoint(const Pose &pose, const ros::Time &stamp);
   sensor_msgs::ImagePtr imageToROSmsg(const cv::Mat &img, const std::string encodingType,
                                       std::string frameId, ros::Time t);
 
