@@ -37,6 +37,8 @@ namespace chasing_client{
         int mask_padding_y;
         int target_number;
         float separate_threshold;
+        float min_depth;
+        bool do_target_mock;
     };
     class ChasingClient{
     private:
@@ -60,6 +62,8 @@ namespace chasing_client{
         ChasingClient();
         void setParam(const chasing_client::Param & param);
         void depthCallback(const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr, const zed_interfaces::ObjectsStampedConstPtr &zedOdPtr);
+        void depthCallbackMock(const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr);
+
         void setPose(const Pose & pose);
         void setObjPose(const std::vector<Pose> & pose);
         void setDecompDepth(const cv::Mat & decompDepth_);

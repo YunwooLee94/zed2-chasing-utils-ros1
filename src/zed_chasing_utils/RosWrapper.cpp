@@ -59,8 +59,10 @@ RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
     nh_.param<int>("pcl_stride", param_.pcl_stride, 2);
     nh_.param<int>("mask_padding_x", param_.mask_padding_x, 10);
     nh_.param<int>("mask_padding_y", param_.mask_padding_y, 10);
+    nh_.param<float>("min_depth",param_.min_depth,0.1);
     nh_.param<float>("separate_threshold",param_.separate_threshold,0.1);
     nh_.param<int>("target_number", param_.target_number, 0);
+    nh_.param<bool>("do_target_mock",param_.do_target_mock,false);
 
     cc.setParam(param_);
     subDepthComp = new message_filters::Subscriber<sensor_msgs::CompressedImage>(nh_,
@@ -69,11 +71,16 @@ RosWrapper::RosWrapper() : nh_("~"), it(nh_) {
     subCamInfo = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_, "/zed2/zed_node/rgb/camera_info", 1);
     subZedOd = new message_filters::Subscriber<zed_interfaces::ObjectsStamped>(nh_, "/zed2/zed_node/obj_det/objects",
                                                                                1);
+    if(not param_.do_target_mock)
     {
         subSync = new message_filters::Synchronizer<CompressedImageMaskBbSync>(CompressedImageMaskBbSync(10),
                                                                                *this->subDepthComp, *this->subCamInfo,
                                                                                *this->subZedOd);
         subSync->registerCallback(boost::bind(&RosWrapper::zedSyncCallback, this, _1, _2, _3));
+    }
+    else{
+      subSyncMock = new message_filters::Synchronizer<CompressedImageMaskBbSyncMock>(CompressedImageMaskBbSyncMock(10),*this->subDepthComp, *this->subCamInfo);
+      subSyncMock->registerCallback(boost::bind(&RosWrapper::zedSyncCallbackMock,this,_1,_2));
     }
     pubPointsMasked = nh_.advertise<pcl::PointCloud<pcl::PointXYZ>>("points_masked", 1);
     pubDepthMaskImg = it.advertise("image_depth_masked", 1);
@@ -124,6 +131,28 @@ RosWrapper::zedSyncCallback(const sensor_msgs::CompressedImageConstPtr &compDept
 
     pubDepthMaskImg.publish(imageToROSmsg(cc.getMaskedImage(), enc::TYPE_32FC1, compDepthImgPtr->header.frame_id,
                                           compDepthImgPtr->header.stamp));
+}
+void RosWrapper::zedSyncCallbackMock(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr,
+                                     const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr) {
+  cc.setPose(this->tfCallBack(compDepthImgPtr));
+  cc.setDecompDepth(this->pngDecompressDepth(compDepthImgPtr));
+  cc.setDepthFrameId(this->getDepthImageFrameId(compDepthImgPtr));
+  cc.setDepthTimeStamp(this->getDepthImageTimeStamp(compDepthImgPtr));
+  cc.depthCallbackMock(cameraInfoPtr);
+  if (cc.getObjectPose().size() == param_.target_number) {
+    for (int i = 0; i < param_.target_number; i++) {
+      if ((not isnan(cc.getObjectPose()[i].getTranslation().x)) and
+          (not isnan(cc.getObjectPose()[i].getTranslation().y))
+          and (not isnan(cc.getObjectPose()[i].getTranslation().z)))
+        pubObjectPos[i].publish(poseToGeoMsgsPoint(cc.getObjectPose()[i]));
+    }
+  }
+  if (not cc.getMaskedPointCloud().points.empty())
+    pubPointsMasked.publish(cc.getMaskedPointCloud());
+
+  pubDepthMaskImg.publish(imageToROSmsg(cc.getMaskedImage(), enc::TYPE_32FC1, compDepthImgPtr->header.frame_id,
+                                        compDepthImgPtr->header.stamp));
+
 }
 
 Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDepthImgPtr) {
@@ -339,4 +368,3 @@ geometry_msgs::PointStamped RosWrapper::poseToGeoMsgsPoint(const Pose &pose) {
     tempPoint.header.frame_id = param_.global_frame_id;
     return tempPoint;
 }
-
