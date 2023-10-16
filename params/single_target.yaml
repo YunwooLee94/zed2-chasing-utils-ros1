@@ -4,5 +4,5 @@ mask_padding_x: 20
 mask_padding_y: 20
 separate_threshold: 0.5
 min_depth: 0.25
-do_target_mock: false
+do_target_mock: true
 target_number: 1
