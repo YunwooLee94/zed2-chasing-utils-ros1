@@ -25,7 +25,7 @@ void chasing_client::ChasingClient::depthCallback(const sensor_msgs::CameraInfoC
     int rMax = rGlobalMax;
     int cMin = cGlobalMin;
     int cMax = cGlobalMax;
-    for(int idx=0;idx<zedOdPtr->objects.size();idx++)
+    for(int idx=0;idx<state_.T_wo.size();idx++)
     {
         rMin = std::max(int(zedOdPtr->objects[idx].bounding_box_2d.corners[0].kp[1])/2 - param_.mask_padding_y, rGlobalMin);
         cMin = std::max(int(zedOdPtr->objects[idx].bounding_box_2d.corners[0].kp[0])/2 - param_.mask_padding_x, cGlobalMin);
@@ -64,16 +64,57 @@ void chasing_client::ChasingClient::depthCallback(const sensor_msgs::CameraInfoC
                 pcl_pts[0] = (float) ((c - camera_cx) * pcl_pts[2]/ camera_fx);
                 pcl_pts[1] = (float) ((r - camera_cy) * pcl_pts[2] / camera_fy);
                 // point cloud transformation
-                Point p_w = state_.T_wc.poseMat * Point(pcl_pts[0], pcl_pts[1], pcl_pts[2]).toEigen();
-                pcl::PointXYZ p;
-                p.x = p_w.x;
-                p.y = p_w.y;
-                p.z = p_w.z;
-                state_.pclObjectsRemoved.points.push_back(p);
+                if(pcl_pts[2]>param_.min_depth){
+                  Point p_w = state_.T_wc.poseMat * Point(pcl_pts[0], pcl_pts[1], pcl_pts[2]).toEigen();
+                  pcl::PointXYZ p;
+                  p.x = p_w.x;
+                  p.y = p_w.y;
+                  p.z = p_w.z;
+                  state_.pclObjectsRemoved.points.push_back(p);
+                }
             }
         }
     }
 }
+
+void chasing_client::ChasingClient::depthCallbackMock(
+    const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr) {
+  image_geometry::PinholeCameraModel model_;
+  model_.fromCameraInfo(*cameraInfoPtr);
+  double camera_cx = model_.cx();
+  double camera_cy = model_.cy();
+  double camera_fx = model_.fx();
+  double camera_fy = model_.fy();
+  double camera_factor = 1;
+
+  state_.pclObjectsRemoved.clear();
+  state_.pclObjectsRemoved.header.frame_id = param_.global_frame_id;
+  state_.pclObjectsRemoved.header.stamp = depthImgTimeStamp;
+
+  // Point-cloud Generation
+  float  pcl_pts[3];
+  for (int r = 0; r < decompDepthImg_.rows; r += param_.pcl_stride) {
+    for (int c = 0; c < decompDepthImg_.cols; c += param_.pcl_stride) {
+      float d = decompDepthImg_.ptr<float>(r)[c];
+      if (not isnan(d))
+      {
+        pcl_pts[2] = (float) (d/ camera_factor);
+        pcl_pts[0] = (float) ((c - camera_cx) * pcl_pts[2]/ camera_fx);
+        pcl_pts[1] = (float) ((r - camera_cy) * pcl_pts[2] / camera_fy);
+        // point cloud transformation
+        if(pcl_pts[2]>param_.min_depth){
+          Point p_w = state_.T_wc.poseMat * Point(pcl_pts[0], pcl_pts[1], pcl_pts[2]).toEigen();
+          pcl::PointXYZ p;
+          p.x = p_w.x;
+          p.y = p_w.y;
+          p.z = p_w.z;
+          state_.pclObjectsRemoved.points.push_back(p);
+        }
+      }
+    }
+  }
+}
+
 
 chasing_client::ChasingClient::ChasingClient() {}
 
@@ -106,7 +147,7 @@ void chasing_client::ChasingClient::setObjPose(const std::vector<Pose>& pose) {
             for(int i =0;i<param_.target_number;i++){
                 float distance_squared_array[param_.target_number];
                 int index_array[param_.target_number];
-                for(int j=0;j<param_.target_number;j++){
+                for(int j=0;j<pose.size();j++){
                     distance_squared_array[j] = 99999999.0f;
                     distance_squared_array[j] = -1;
                 }
