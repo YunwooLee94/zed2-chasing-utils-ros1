@@ -47,3 +47,6 @@ file(GLOB ZED_CLIENT src/zed_chasing_utils/*.cpp)
 
 add_executable(zed_client src/exe/main.cpp ${ZED_CLIENT} include/zed_chasing_utils/ChasingClient.h src/zed_chasing_utils/ChasingClient.cpp include/utils/math_util.h src/utils/math_util.cpp)
 target_link_libraries(zed_client ${catkin_LIBRARIES})
+
+add_executable(zed_tf_bridge src/exe/tf_bridge_main.cpp)
+target_link_libraries(zed_tf_bridge ${catkin_LIBRARIES})
