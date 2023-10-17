@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="rviz_display" default="true"/>
+  <arg name="bag_file" default="$(find zed_chasing_utils)/world/virtual_target.bag"/>
+
+  <node name="ros_bag_play" pkg="rosbag" type="play" args="--clock -r 1.0 -s 5.0 $(arg bag_file)">
+<!--    <param name="/use_sim_time" value="true"/>-->
+  </node>	
+
+    <group if = "$(arg rviz_display)">
+	    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_chasing_utils)/launch/rviz_config/zed_client_single_virtual.rviz" output="log"/>
+    </group>
+
+  <node pkg="zed_chasing_utils" type="zed_client" name="zed_client" output="screen">
+    <rosparam file="$(find zed_chasing_utils)/params/single_target.yaml" />
+  </node>
+  <node pkg="zed_chasing_utils" type="zed_tf_bridge" name="zed_tf_bridge" output="screen">
+  </node>
+
+</launch>
