@@ -143,25 +143,32 @@ void chasing_client::ChasingClient::setObjPose(const std::vector<Pose>& pose) {
             is_first_time = false;
         }
         else{
+            float distance_squared_array[param_.target_number];
+            int index_array[param_.target_number];
             for(int i =0;i<param_.target_number;i++){
-                float distance_squared_array[param_.target_number];
-                int index_array[param_.target_number];
+                distance_squared_array[i] = 999999999.0f;
+                index_array[i] = -1;
+            }
+            float temp_distance_squared = 0.0f;
+            for(int i=0;i<param_.target_number;i++){
+		bool is_corresponding = false;
                 for(int j=0;j<pose.size();j++){
-                    distance_squared_array[j] = 99999999.0f;
-                    distance_squared_array[j] = -1;
-                }
-                float temp_distance_squared = 0.0f;
-                for(int j =0;j<pose.size();j++){
                     temp_distance_squared = powf(target_pose_temp[i].getTranslation().x-pose[j].getTranslation().x,2)+
                             powf(target_pose_temp[i].getTranslation().y-pose[j].getTranslation().y,2)+
                             powf(target_pose_temp[i].getTranslation().z-pose[j].getTranslation().z,2);
                     if(temp_distance_squared<distance_squared_array[i] and temp_distance_squared<powf(param_.separate_threshold,2)){
                         distance_squared_array[i] = temp_distance_squared;
-                        index_array[i]=j;
+                        index_array[i] = j;
+			is_corresponding = true;
                     }
                 }
-                target_pose_temp[i] = pose[index_array[i]];
-                state_.T_wo.push_back(pose[index_array[i]]);
+		if(is_corresponding){
+		  target_pose_temp[i] = pose[index_array[i]];
+                  state_.T_wo.push_back(pose[index_array[i]]);
+		}
+		else{
+		  state_.T_wo.push_back(target_pose_temp[i]);
+		}
             }
         }
     }
