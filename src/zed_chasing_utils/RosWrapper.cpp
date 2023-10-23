@@ -183,9 +183,20 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
 vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConstPtr &objPtr) {
     ros::Time curSensorTime = objPtr->header.stamp; //zed left camera frame
     tf::StampedTransform transform_temp;
+    Pose camera_left_lense_pose;
     try{
         tfListenerPtr->lookupTransform(param_.global_frame_id, objPtr->header.frame_id,
                                        curSensorTime, transform_temp);
+        camera_left_lense_pose.poseMat.setIdentity();
+        Eigen::Vector3f loc((float)transform_temp.getOrigin().x(),(float)transform_temp.getOrigin().y(),(float)transform_temp.getOrigin().z());
+        camera_left_lense_pose.poseMat.translate(loc);
+        Eigen::Quaternionf quaternionf;
+        quaternionf.setIdentity();
+        quaternionf.w() = float (transform_temp.getRotation().w());
+        quaternionf.x() = float (transform_temp.getRotation().x());
+        quaternionf.y() = float (transform_temp.getRotation().y());
+        quaternionf.z() = float (transform_temp.getRotation().z());
+        camera_left_lense_pose.poseMat.rotate(quaternionf);
     } catch(tf::TransformException &ex){
         ROS_ERROR_STREAM(ex.what());
         ROS_ERROR("[ZedClient] no transform between map and object header. Cannot process further.");
@@ -255,8 +266,9 @@ vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConst
             }
         }
         Pose tempPose;
-        tempPose.setTranslation(temp_x,
-                                temp_y, temp_z);
+        Point p_o =camera_left_lense_pose.poseMat * Point(temp_x,temp_y,temp_z).toEigen();
+        tempPose.setTranslation(p_o.x,
+                                p_o.y, p_o.z);
         tempPose.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
         object_position_array.push_back(tempPose);
     }
