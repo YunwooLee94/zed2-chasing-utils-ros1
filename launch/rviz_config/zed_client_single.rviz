@@ -4,8 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Rectified Pointcloud1/Status1
         - /CameraPose1/Shape1
+        - /LocalGoalOdom1/Status1
       Splitter Ratio: 0.5
     Tree Height: 781
   - Class: rviz/Selection
@@ -174,7 +174,7 @@ Visualization Manager:
       Marker Topic: /planning_pro/chasing_best_primitive
       Name: ChaserBest
       Namespaces:
-        ChaserBest: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -229,8 +229,8 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
-      Name: LocalGoal
+      Keep: 1
+      Name: LocalGoalOdom
       Position Tolerance: 0.10000000149011612
       Shape:
         Alpha: 1
@@ -242,16 +242,31 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Arrow
-      Topic: /mav_wrapper/setpoint_planning
+      Topic: /local_goal_planning_odom
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /predictor/target_primitives
-      Name: MarkerArray
+      Name: TargetPrimitives
       Namespaces:
         TargetRaw: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 0; 0; 255
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: LocalGoalPose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /mav_wrapper/setpoint_planning
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -281,7 +296,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 21.815826416015625
+      Distance: 8.915596961975098
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -296,10 +311,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9547960758209229
+      Pitch: 1.2697961330413818
       Target Frame: odom
       Value: ThirdPersonFollower (rviz)
-      Yaw: 1.9504058361053467
+      Yaw: 2.850407123565674
     Saved: ~
 Window Geometry:
   Displays:
