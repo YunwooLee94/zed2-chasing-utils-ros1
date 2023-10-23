@@ -171,7 +171,7 @@ Pose RosWrapper::tfCallBack(const sensor_msgs::CompressedImageConstPtr &compDept
         return getPoseFromTfMsgs(transform_temp);
     } catch (tf::TransformException &ex) {
         ROS_ERROR_STREAM(ex.what());
-        ROS_ERROR("[ZedClient] no transform between map and depth header. Cannot process further.");
+        ROS_ERROR("[ZedClient] no transform between map and object header. Cannot process further.");
         Pose dummy;
         dummy.setTranslation(0.0, 0.0, 0.0);
         dummy.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
@@ -202,7 +202,7 @@ vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConst
         ROS_ERROR("[ZedClient] no transform between map and object header. Cannot process further.");
         vector<Pose> dummy_position_array;
         return dummy_position_array;
-    }    
+    }
 
     float temp_x{0.0}, temp_y{0.0}, temp_z{0.0};
     vector<Pose> object_position_array;
@@ -266,9 +266,8 @@ vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConst
             }
         }
         Pose tempPose;
-        Point p_o =camera_left_lense_pose.poseMat * Point(temp_x,temp_y,temp_z).toEigen();
-        tempPose.setTranslation(p_o.x,
-                                p_o.y, p_o.z);
+        tempPose.setTranslation(temp_x,
+                                temp_y, temp_z);
         tempPose.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
         object_position_array.push_back(tempPose);
     }
