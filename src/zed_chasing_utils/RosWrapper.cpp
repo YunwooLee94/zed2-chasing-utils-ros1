@@ -266,8 +266,8 @@ vector<Pose> RosWrapper::tfObjCallBack(const zed_interfaces::ObjectsStampedConst
             }
         }
         Pose tempPose;
-        tempPose.setTranslation(temp_x,
-                                temp_y, temp_z);
+        Point p_o = camera_left_lense_pose.poseMat *Point(temp_x,temp_y,temp_z).toEigen();
+        tempPose.setTranslation(p_o.x, p_o.y, p_o.z);
         tempPose.setRotation(Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0));
         object_position_array.push_back(tempPose);
     }
