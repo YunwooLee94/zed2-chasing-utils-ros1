@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="rviz_display" default="true"/>
+  <arg name="rviz_display" default="false"/>
 
     <group if = "$(arg rviz_display)">
 	    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_chasing_utils)/launch/rviz_config/zed_client_dual.rviz" output="log"/>
